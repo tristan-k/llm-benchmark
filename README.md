@@ -1,9 +1,9 @@
-# LLM Benchmark (ollama only)
+# LLM Benchmark (Ollama only)
 
-This tool allows you to get the t/s (tokens per second) of Large Language Models (LLMs) running on your local machine. Currently we only support testing Ollama llms
+This tool allows you to get the tokens per second (t/s) of Large Language Models (LLMs) running on your local machine. Currently, we only support testing Ollama models.
 
 ### Example output
-Output on a Nvidia 4090 windows desktop
+Output on an Nvidia 4090 Windows desktop
 ```bash
 Average stats:
 
@@ -42,12 +42,12 @@ Average stats:
 
 ## Getting Started
 
-Follow these instructions to set up and run benchmarks on your system.
+To set up and run benchmarks on your system, follow these instructions.
 
 ### Prerequisites
 
 - Python 3.6+
-- [ollama](https://ollama.com/) installed
+- [Ollama](https://ollama.com/)
 
 ### Installation
 
@@ -56,7 +56,7 @@ Follow these instructions to set up and run benchmarks on your system.
    Open a terminal or powershell and run:
 
    ```bash
-   git clone https://github.com/yourusername/llm-benchmark.git
+   git clone https://github.com/willybcode/llm-benchmark.git
    cd llm-benchmark
    ```
 
@@ -82,13 +82,12 @@ Follow these instructions to set up and run benchmarks on your system.
    pip install -r requirements.txt
    ```
 
-4. **Serve the Ollama model**
+4. **Serve the Ollama models**
 
-   Before running benchmarks, make sure your Ollama model server is running:
+   Before running benchmarks, make sure your Ollama model server is running
+   
+   Try ```ollama list``` . If you get an error then run  ```ollama serve```
 
-   ```bash
-   ollama serve
-   ```
 
 ### Running Benchmarks
 
@@ -100,13 +99,20 @@ python benchmark.py --verbose --prompts "What is the sky blue?" "Write a report 
 
 #### Command Line Arguments
 
-- `--verbose`: Prints the prompts and streams the responses from Ollama
-- `--skip-models`: Specify a list of model names to skip during the benchmark. Get the list of possible models by running the command `ollama list`. Separate multiple models with spaces.
-- `--prompts`: Provide custom prompts to use for benchmarking. Separate multiple prompts with spaces.
+- `-v` or `--verbose`: Prints the prompts and streams the responses from Ollama
+- `-s` or `--skip-models`: To specify a list of model to skip during the benchmark. Separate multiple models with spaces.
+- `-u` or `--use-models`: To specify a list of model to run during the benchmark. The benchmart will only run the specified models. Separate multiple models with spaces.
+- `-p` or `--prompts`: Provide custom prompts to use for benchmarking. Separate multiple prompts with spaces.
+
+Note: Run `ollama list` in a terminal/command line to get names of the models available on your system. You can then use those names with the `-u` or `-s` arguments.
+
+***Note:*** If you don't specify `-u` or `-s`, the script will run the benchmark on all available models.
 
 #### Examples
 
 - **Run with default prompts in verbose mode**
+
+  *Run a benchmark using the default prompts and print the output in verbose mode.*
 
   ```bash
   python benchmark.py --verbose
@@ -114,19 +120,53 @@ python benchmark.py --verbose --prompts "What is the sky blue?" "Write a report 
 
 - **Run with custom prompts**
 
+  *Skip one or more specific models during the benchmark. Run on all models except the ones specified.*
+
   ```bash
   python benchmark.py --prompts "Custom prompt 1" "Why is the sky blue?"
   ```
 
 - **Skip specific models**
 
+  *Skip one or more specific models during the benchmark. Run on all models except the ones specified.*
+
   ```bash
-  python benchmark.py --skip-models model1 llama2:latest
+  python benchmark.py -s llama3.1:latest gemma2:9b # will run benchmark on all models except those two
   ```
+- **Only use specific models**
+
+  *Run a benchmark only on one or more specific models, even if other models are available.*
+
+  ```bash
+  python benchmark.py -u llama2:13b phi3:latest qwen2:72b # will run benchmark only on those three models if they are available
+  ```
+
+## Roadmap
+### Upcoming Features
+I am planning to add the following features to improve this project:
+
+#### Current
+- [x] Allow users to specify which models to run
+- [ ] Add support for an interactive mode
+  - [ ] Show numbered list of available models
+  - [ ] Add support for selecting models to skip or use
+  - [ ] Add support for verbose and prompts selection
+- [ ] Exclude the embedding models from benchmarking by default (they lack support for chat)
+- [ ] Support using remote host:port
+- [ ] Better error handling
+- [ ] Add support for a configuration file
+
+#### Future
+- [ ] Retrieve and display hardware information
+- [ ] Allow users to load a list of models from a file for `skip` or `use`
+- [ ] Support saving well-formatted benchmark results to file
+- [ ] Add support for colored output
+- [ ] Explore options for optimizing resource usage
+
 
 ## Contributing
 
-We welcome contributions! Please feel free to submit a pull request or create an issue if you have suggestions for improvements or have identified bugs.
+We appreciate your enthusiasm! Contributions are always welcome. To get started, you can submit a pull request or raise an issue if you have any suggestions for improvements or encounter bugs.
 
 ## License
 
