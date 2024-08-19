@@ -39,9 +39,7 @@ class OllamaResponse(BaseModel):
         return value
 
 
-def run_benchmark(
-    model_name: str, prompt: str, verbose: bool
-) -> OllamaResponse:
+def run_benchmark(model_name: str, prompt: str, verbose: bool) -> OllamaResponse:
 
     last_element = None
 
@@ -92,9 +90,7 @@ def inference_stats(model_response: OllamaResponse):
     response_ts = model_response.eval_count / (
         nanosec_to_sec(model_response.eval_duration)
     )
-    total_ts = (
-        model_response.prompt_eval_count + model_response.eval_count
-    ) / (
+    total_ts = (model_response.prompt_eval_count + model_response.eval_count) / (
         nanosec_to_sec(
             model_response.prompt_eval_duration + model_response.eval_duration
         )
@@ -144,20 +140,25 @@ def average_stats(responses: List[OllamaResponse]):
     inference_stats(res)
 
 
-def get_benchmark_models(skip_models: List[str] = []) -> List[str]:
+def get_benchmark_models(
+    models_to_use: List[str], models_to_skip: List[str] = []
+) -> List[str]:
     models = ollama.list().get("models", [])
     model_names = [model["name"] for model in models]
-    if len(skip_models) > 0:
-        model_names = [
-            model for model in model_names if model not in skip_models
-        ]
+    if len(models_to_use) > 0 and len(models_to_skip) > 0:
+        raise ValueError("Cannot provide both 'Models to use' and 'Models to skip' at the same time")
+    if len(models_to_use) > 0:
+        model_names = [model for model in model_names if model in models_to_use]
+    elif len(models_to_skip) > 0:
+        model_names = [model for model in model_names if model not in models_to_skip]
     print(f"Evaluating models: {model_names}\n")
     return model_names
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run benchmarks on your Ollama models."
+        description="Run benchmarks on your Ollama models.",
+        epilog="See https://github.com/willybcode/llm-benchmark for more information.",
     )
     parser.add_argument(
         "-v",
@@ -174,6 +175,13 @@ def main():
         help="List of model names to skip. Separate multiple models with spaces.",
     )
     parser.add_argument(
+        "-u",
+        "--use-models",
+        nargs="*",
+        default=[],
+        help="List of model names to use exclusively. Separate multiple models with spaces.",
+    )
+    parser.add_argument(
         "-p",
         "--prompts",
         nargs="*",
@@ -187,25 +195,32 @@ def main():
     args = parser.parse_args()
 
     verbose = args.verbose
-    skip_models = args.skip_models
+    models_to_skip = args.skip_models
+    models_to_use = args.use_models
     prompts = args.prompts
     print(
-        f"\nVerbose: {verbose}\nSkip models: {skip_models}\nPrompts: {prompts}"
+        f"\nVerbose: {verbose}\nUse models: {models_to_use}\nSkip models: {models_to_skip}\nPrompts: {prompts}"
     )
 
-    model_names = get_benchmark_models(skip_models)
+    model_names = get_benchmark_models(models_to_use, models_to_skip)
     benchmarks = {}
+
+    if not model_names:
+        print(
+            "No models to evaluate. Check your arguments or pull some models with: 'ollama pull <<model_name>>'"
+        )
 
     for model_name in model_names:
         responses: List[OllamaResponse] = []
         for prompt in prompts:
             if verbose:
                 print(f"\n\nBenchmarking: {model_name}\nPrompt: {prompt}")
+                print("Response:")
             response = run_benchmark(model_name, prompt, verbose=verbose)
             responses.append(response)
 
             if verbose:
-                print(f"Response: {response.message.content}")
+                print(response.message.content)
                 inference_stats(response)
         benchmarks[model_name] = responses
 
