@@ -40,6 +40,9 @@ Average stats:
 ----------------------------------------------------
 ```
 
+### Interactive Mode Preview
+![Interactive Demo](interactive_demo.png)
+
 ## Getting Started
 
 To set up and run benchmarks on your system, follow these instructions.
@@ -90,8 +93,15 @@ To set up and run benchmarks on your system, follow these instructions.
 
 
 ### Running Benchmarks
+#### Interactive Mode
+Run `benchmark.py` script with no arguments to start the interactive mode.
 
-To run benchmarks, use the `benchmark.py` script with the desired command line arguments:
+```bash
+python benchmark.py
+```
+
+#### Command Line
+Run the `benchmark.py` script with the desired command line arguments:
 
 ```bash
 python benchmark.py --verbose --prompts "What is the sky blue?" "Write a report on the financials of Nvidia"
@@ -100,13 +110,12 @@ python benchmark.py --verbose --prompts "What is the sky blue?" "Write a report 
 #### Command Line Arguments
 
 - `-v` or `--verbose`: Prints the prompts and streams the responses from Ollama
+- `-a` or `--all`: Use all available models.
 - `-s` or `--skip-models`: To specify a list of model to skip during the benchmark. Separate multiple models with spaces.
 - `-u` or `--use-models`: To specify a list of model to run during the benchmark. The benchmart will only run the specified models. Separate multiple models with spaces.
 - `-p` or `--prompts`: Provide custom prompts to use for benchmarking. Separate multiple prompts with spaces.
 
 Note: Run `ollama list` in a terminal/command line to get names of the models available on your system. You can then use those names with the `-u` or `-s` arguments.
-
-***Note:*** If you don't specify `-u` or `-s`, the script will run the benchmark on all available models.
 
 #### Examples
 
@@ -115,7 +124,7 @@ Note: Run `ollama list` in a terminal/command line to get names of the models av
   *Run a benchmark using the default prompts and print the output in verbose mode.*
 
   ```bash
-  python benchmark.py --verbose
+  python benchmark.py --verbose --all
   ```
 
 - **Run with custom prompts**
@@ -123,7 +132,7 @@ Note: Run `ollama list` in a terminal/command line to get names of the models av
   *Skip one or more specific models during the benchmark. Run on all models except the ones specified.*
 
   ```bash
-  python benchmark.py --prompts "Custom prompt 1" "Why is the sky blue?"
+  python benchmark.py --all --prompts "Custom prompt 1" "Why is the sky blue?"
   ```
 
 - **Skip specific models**
@@ -147,13 +156,13 @@ I am planning to add the following features to improve this project:
 
 #### Current
 - [x] Allow users to specify which models to run
-- [ ] Add support for an interactive mode
-  - [ ] Show numbered list of available models
-  - [ ] Add support for selecting models to skip or use
-  - [ ] Add support for verbose and prompts selection
+- [x] Add support for an interactive mode
+  - [x] Show numbered list of available models
+  - [x] Add support for selecting models to skip or use
+  - [x] Add support for verbose and prompts selection
 - [ ] Exclude the embedding models from benchmarking by default (they lack support for chat)
 - [ ] Support using remote host:port
-- [ ] Better error handling
+- [ ] Better error handling and documentation
 - [ ] Add support for a configuration file
 
 #### Future

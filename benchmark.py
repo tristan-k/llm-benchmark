@@ -10,6 +10,8 @@ from pydantic import (
 
 from datetime import datetime
 
+#  string manip
+import re
 
 class Message(BaseModel):
     role: str
@@ -139,23 +141,108 @@ def average_stats(responses: List[OllamaResponse]):
     print("Average stats:")
     inference_stats(res)
 
-
-def get_benchmark_models(
-    models_to_use: List[str], models_to_skip: List[str] = []
-) -> List[str]:
+def get_full_model_list() -> List[str]:
+    """
+    Get a list of all available Ollama model names.
+    Returns:
+        List[str]: The list of model names.
+    """
     models = ollama.list().get("models", [])
-    model_names = [model["name"] for model in models]
+    # print(models)
+    return [model["name"] for model in models]
+
+def show_models_list(model_names: List[str]) -> None:
+    """
+    Print a numbered list of model names.
+    Args:
+        model_names (List[str]): The list of model names to print.
+    Returns:
+        None
+    """
+    print("\nAvailable models:\n")
+    for i, name in enumerate(model_names):
+        print(f"{i+1}. {name}")
+        
+def get_user_choice(choices: List[str], choice_text: str) -> str:
+    """Get user choice for prompts"""
+    while True:
+        prompt_choice = input(choice_text).strip().upper()
+        if prompt_choice in choices:
+            return prompt_choice
+        print("\nInvalid choice. Please try again.")
+
+def validate_input(user_input):
+    """Remove spaces and validate input format"""
+    user_input = user_input.replace(" ", "")
+    if not re.match("^[0-9,]+$", user_input):
+        raise ValueError("Invalid input. Please enter only digits and commas.")
+    return user_input
+
+def get_benchmark_models(models_list: List[str], models_to_use: List[str] = [], models_to_skip: List[str] = []) -> List[str]:
+    """
+    Get a list of benchmark model names.
+    
+    Args:
+        models_list (List[str]): A list of all available models
+        models_to_use (List[str]): A list of model names to use exclusively. If provided,
+            no other models will be included.
+        models_to_skip (List[str]): A list of model names to exclude from the results.
+    
+    Returns:
+        List[str]: The list of selected model names.
+    
+    Raises:
+        ValueError: If both `models_to_use` and `models_to_skip` are provided.
+    """
+
+    model_names = models_list.copy()
+
     if len(models_to_use) > 0 and len(models_to_skip) > 0:
         raise ValueError("Cannot provide both 'Models to use' and 'Models to skip' at the same time")
     if len(models_to_use) > 0:
         model_names = [model for model in model_names if model in models_to_use]
     elif len(models_to_skip) > 0:
         model_names = [model for model in model_names if model not in models_to_skip]
-    print(f"Evaluating models: {model_names}\n")
+    # print(f"Evaluating models: {model_names}\n")
     return model_names
 
+def get_custom_prompts():
+    """Get custom prompts from user"""
+    PROMPT_SEPARATOR = '|'
+
+    print(f"\nCustom prompts should be separated by {PROMPT_SEPARATOR}. Quotes are optional. e.g.: prompt1 {PROMPT_SEPARATOR} \"prompt 2\" {PROMPT_SEPARATOR} prompt3")
+    keep_prompting = True
+    while keep_prompting:
+        user_input = input(f"Enter custom prompts ({PROMPT_SEPARATOR}-separated):\n\n>> ")
+        
+        # Split input by separator
+        prompts = user_input.split(PROMPT_SEPARATOR)
+        
+        # Strip whitespace and remove surrounding quotes for each prompt
+        prompts = [prompt.strip().strip('"') for prompt in prompts]
+        
+        # Remove empty prompts
+        prompts = [prompt for prompt in prompts if prompt]
+        
+        if prompts:
+            return prompts
+        else:
+            print("\nError: No valid prompts entered. Please try again.")
+
+def validate_selection_range(user_input : str,max : int):
+    """Validate selection range"""
+    
+    for i in user_input.split(','):
+        if not 1 <= (i := int(i)) <= max:
+            print(f"\nError: Invalid selection '{i}' Please try again.")
+            return False
+    return user_input
 
 def main():
+    default_prompts =[
+        "Why is the sky blue?",
+        "Write a report on the financials of Microsoft",
+    ]
     parser = argparse.ArgumentParser(
         description="Run benchmarks on your Ollama models.",
         epilog="See https://github.com/willybcode/llm-benchmark for more information.",
@@ -165,6 +252,13 @@ def main():
         "--verbose",
         action="store_true",
         help="Increase output verbosity",
+        default=False,
+    )
+    parser.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        help="Use all available models",
         default=False,
     )
     parser.add_argument(
@@ -185,32 +279,94 @@ def main():
         "-p",
         "--prompts",
         nargs="*",
-        default=[
-            "Why is the sky blue?",
-            "Write a report on the financials of Apple Inc.",
-        ],
+        default=default_prompts,
         help="List of prompts to use for benchmarking. Separate multiple prompts with spaces.",
     )
 
     args = parser.parse_args()
-
     verbose = args.verbose
+    all_models: bool = args.all
     models_to_skip = args.skip_models
     models_to_use = args.use_models
     prompts = args.prompts
+    models_list = get_full_model_list()
+    selected_models = []
+    if not models_list:
+        print(f"\nNo models found with ollama. Pull some models first")
+        return
+    
+
+    if not all_models and len(models_to_skip) == 0 and len(models_to_use) == 0:
+        # interactive = True
+        print("\nWhat would you like to do?")
+        user_choice = get_user_choice(['A','B','C'],"A) Select models to benchmark\nB) Select models to skip in benchmark\nC) Run benchmark on all models\n\n>> ")
+
+        if user_choice == 'A':
+            show_models_list(models_list)
+            user_input = input("\nEnter a comma separated list of model numbers to use (e.g., 1,2,3):\n\n>> ")
+            
+            try:
+                user_input = validate_input(user_input)
+                if not (validate_selection_range(user_input,len(models_list))):
+                    return
+                models_to_use = [models_list[int(i)-1] for i in user_input.split(',')]
+            except ValueError:
+                print("\nError: Invalid input. Please try again.")
+                return
+        elif user_choice == 'B':
+            show_models_list(models_list)
+            user_input = input("\nEnter a comma separated list of model numbers to skip (e.g., 1,2,3):\n\n>> ")
+            
+            try:
+                user_input = validate_input(user_input)
+                if not (validate_selection_range(user_input,len(models_list))):
+                    return
+                models_to_skip = [models_list[int(i)-1] for i in user_input.split(',')]
+            except ValueError:
+                print("\nError: Invalid input. Please try again.")
+                return
+        elif user_choice == 'C':
+            all_models = True
+        
+        if not verbose:
+            verbose_choice = input("\nVerbose? [y/n] : ")
+            if verbose_choice.strip().lower() == 'y':
+                verbose = True
+            
+        if not prompts:
+            prompts=default_prompts
+            
+        prompt_choice = get_user_choice(['A','B'],"\nA) Use %s prompts\nB) Use Custom prompts\n\n>> " % ('Default' if prompts == default_prompts else 'Currently set')).strip().upper()
+            
+            
+        if prompt_choice == 'A':
+            if not prompts:
+                prompts = [
+                    "Why is the sky blue?",
+                    "Write a report on the financials of Apple Inc.",
+                ]
+        elif prompt_choice == 'B':
+            prompts = get_custom_prompts()
+        
+    # selected_models = models_list if all_models else get_benchmark_models(models_list, models_to_use, models_to_skip)
+    if all_models:
+        models_to_use = selected_models = models_list
+    else:
+        selected_models = get_benchmark_models(models_list, models_to_use, models_to_skip)
+        
+    if not selected_models:
+        print('No models selected.')
+        return
+
     print(
         f"\nVerbose: {verbose}\nUse models: {models_to_use}\nSkip models: {models_to_skip}\nPrompts: {prompts}"
     )
-
-    model_names = get_benchmark_models(models_to_use, models_to_skip)
+    if selected_models == models_list:
+        print("\nRunning benchmark on all available models")
+    
+            
     benchmarks = {}
-
-    if not model_names:
-        print(
-            "No models to evaluate. Check your arguments or pull some models with: 'ollama pull <<model_name>>'"
-        )
-
-    for model_name in model_names:
+    for model_name in selected_models:
         responses: List[OllamaResponse] = []
         for prompt in prompts:
             if verbose:
