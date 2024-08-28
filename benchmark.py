@@ -168,6 +168,13 @@ def main():
         default=False,
     )
     parser.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        help="Use all available models",
+        default=False,
+    )
+    parser.add_argument(
         "-s",
         "--skip-models",
         nargs="*",
@@ -195,6 +202,7 @@ def main():
     args = parser.parse_args()
 
     verbose = args.verbose
+    all_models: bool = args.all
     models_to_skip = args.skip_models
     models_to_use = args.use_models
     prompts = args.prompts
