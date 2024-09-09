@@ -1,7 +1,7 @@
 import argparse
 from typing import List
 
-import ollama
+from ollama import Client
 from pydantic import (
     BaseModel,
     Field,
@@ -13,6 +13,7 @@ from datetime import datetime
 #  string manip
 import re
 
+DEFAULT_HOST = 'http://localhost:11434'
 class Message(BaseModel):
     role: str
     content: str
@@ -41,12 +42,12 @@ class OllamaResponse(BaseModel):
         return value
 
 
-def run_benchmark(model_name: str, prompt: str, verbose: bool) -> OllamaResponse:
+def run_benchmark(model_name: str, prompt: str, verbose: bool, client: Client) -> OllamaResponse:
 
     last_element = None
 
     if verbose:
-        stream = ollama.chat(
+        stream = client.chat(
             model=model_name,
             messages=[
                 {
@@ -60,7 +61,7 @@ def run_benchmark(model_name: str, prompt: str, verbose: bool) -> OllamaResponse
             print(chunk["message"]["content"], end="", flush=True)
             last_element = chunk
     else:
-        last_element = ollama.chat(
+        last_element = client.chat(
             model=model_name,
             messages=[
                 {
@@ -141,13 +142,13 @@ def average_stats(responses: List[OllamaResponse]):
     print("Average stats:")
     inference_stats(res)
 
-def get_full_model_list() -> List[str]:
+def get_full_model_list(client) -> List[str]:
     """
     Get a list of all available Ollama model names.
     Returns:
         List[str]: The list of model names.
     """
-    models = ollama.list().get("models", [])
+    models = client.list().get("models", [])
     # print(models)
     return [model["name"] for model in models]
 
@@ -238,6 +239,13 @@ def validate_selection_range(user_input : str,max : int):
             return False
     return user_input
 
+def validate_host(user_host: str):
+    """Validate host"""
+    pattern = r"^(http|https)://((([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,})|(localhost)|(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}))(:\d{1,5})?$"
+    if not re.match(pattern, user_host):
+        print(f"\nError: Invalid host '{user_host}'. Please try again. Examples of valid hosts are http://localhost, http://localhost:11434, http://10.0.0.10:1156, https://myserver.dev")
+        return False
+    return user_host
 def main():
     default_prompts =[
         "Why is the sky blue?",
@@ -282,14 +290,25 @@ def main():
         default=default_prompts,
         help="List of prompts to use for benchmarking. Separate multiple prompts with spaces.",
     )
-
+    parser.add_argument(
+        "--remote",
+        type=str,
+        default=DEFAULT_HOST,
+        help="Ollama API host example: http://localhost:11434",
+    )
+    
     args = parser.parse_args()
     verbose = args.verbose
     all_models: bool = args.all
     models_to_skip = args.skip_models
     models_to_use = args.use_models
     prompts = args.prompts
-    models_list = get_full_model_list()
+    remote= args.remote
+    if not validate_host(remote):
+        return
+    client = Client(host=remote)
+
+    models_list = get_full_model_list(client)
     selected_models = []
     if not models_list:
         print(f"\nNo models found with ollama. Pull some models first")
@@ -341,10 +360,7 @@ def main():
             
         if prompt_choice == 'A':
             if not prompts:
-                prompts = [
-                    "Why is the sky blue?",
-                    "Write a report on the financials of Apple Inc.",
-                ]
+                prompts = default_prompts
         elif prompt_choice == 'B':
             prompts = get_custom_prompts()
         
@@ -372,7 +388,7 @@ def main():
             if verbose:
                 print(f"\n\nBenchmarking: {model_name}\nPrompt: {prompt}")
                 print("Response:")
-            response = run_benchmark(model_name, prompt, verbose=verbose)
+            response = run_benchmark(model_name, prompt, verbose=verbose, client=client)
             responses.append(response)
 
             if verbose:

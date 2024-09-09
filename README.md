@@ -114,6 +114,7 @@ python benchmark.py --verbose --prompts "What is the sky blue?" "Write a report 
 - `-s` or `--skip-models`: To specify a list of model to skip during the benchmark. Separate multiple models with spaces.
 - `-u` or `--use-models`: To specify a list of model to run during the benchmark. The benchmart will only run the specified models. Separate multiple models with spaces.
 - `-p` or `--prompts`: Provide custom prompts to use for benchmarking. Separate multiple prompts with spaces.
+- `--remote`: Use a remote ollama instance.
 
 Note: Run `ollama list` in a terminal/command line to get names of the models available on your system. You can then use those names with the `-u` or `-s` arguments.
 
@@ -150,6 +151,14 @@ Note: Run `ollama list` in a terminal/command line to get names of the models av
   python benchmark.py -u llama2:13b phi3:latest qwen2:72b # will run benchmark only on those three models if they are available
   ```
 
+- **Run with remote host:port**
+
+  *Run a benchmark using a remote Ollama instance.*
+
+  ```bash
+  python benchmark.py --remote http://localhost:11434
+  ```
+
 ## Roadmap
 ### Upcoming Features
 I am planning to add the following features to improve this project:
@@ -160,8 +169,8 @@ I am planning to add the following features to improve this project:
   - [x] Show numbered list of available models
   - [x] Add support for selecting models to skip or use
   - [x] Add support for verbose and prompts selection
+- [x] Support using remote host:port
 - [ ] Exclude the embedding models from benchmarking by default (they lack support for chat)
-- [ ] Support using remote host:port
 - [ ] Better error handling and documentation
 - [ ] Add support for a configuration file
 
