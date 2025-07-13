@@ -150,7 +150,7 @@ def get_full_model_list(client) -> List[str]:
     """
     models = client.list().get("models", [])
     # print(models)
-    return [model["name"] for model in models]
+    return [model["model"] for model in models]
 
 def show_models_list(model_names: List[str]) -> None:
     """
